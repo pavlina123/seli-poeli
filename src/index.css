@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+/* Твои кастомные стили для кнопок и анимаций, которые мы делали */
+.btn-primary {
+  background: linear-gradient(135deg, #fbbf24 0%, #fb923c 50%, #dc2626 100%);
+  color: #000 !important;
+  font-weight: 900;
+  border-radius: 1rem;
+  padding: 12px 24px;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 10px 30px rgba(251, 191, 36, 0.4);
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 15px 40px rgba(251, 191, 36, 0.6);
+}
