@@ -2,11 +2,16 @@ import React from 'react';
 import { categories, waLink, formatPrice } from './theme';
 
 export default function Menu({ products = [], currentFilter, setCurrentFilter, isInCart, onAdd, onOpen, onGoCart }) {
+  
+  // ФИЛЬТРАЦИЯ: Сначала убираем скрытые блюда (is_hidden), затем фильтруем по категории
+  const visibleProducts = products.filter(p => !p.is_hidden);
+  
   const filtered = currentFilter === 'all' 
-    ? products 
-    : products.filter(p => p.category === currentFilter);
+    ? visibleProducts 
+    : visibleProducts.filter(p => p.category === currentFilter);
 
-  const sideFiltered = products; 
+  // Для сайдбара тоже берем только видимые блюда
+  const sideFiltered = visibleProducts; 
 
   return (
     <section id="menu" className="py-8 md:py-20 max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
@@ -46,7 +51,7 @@ export default function Menu({ products = [], currentFilter, setCurrentFilter, i
         
         {/* Сетка с карточками блюд */}
         <div className="lg:col-span-8 xl:col-span-9">
-          {/* ГЛАВНОЕ ИЗМЕНЕНИЕ: grid-cols-2 для мобилки, sm:grid-cols-2 md:grid-cols-3 */}
+          {/* Сетка 2 колонки на телефоне, 3 на ПК */}
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
             {filtered.length === 0 ? (
               <div className="col-span-full text-center py-12">
