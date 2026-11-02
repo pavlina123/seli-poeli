@@ -1,10 +1,10 @@
 import React from 'react';
-import { categories, waLink, formatPrice } from './theme';
+import { categories, formatPrice } from './theme';
 
 export default function Menu({ products = [], currentFilter, setCurrentFilter, isInCart, onAdd, onOpen, onGoCart }) {
   
-  // ФИЛЬТРАЦИЯ: Сначала убираем скрытые блюда (is_hidden), затем фильтруем по категории
-  const visibleProducts = products.filter(p => !p.is_hidden);
+  // ФИЛЬТРАЦИЯ: Убираем скрытые (is_hidden) и черновики (is_published === false)
+  const visibleProducts = products.filter(p => !p.is_hidden && p.is_published !== false);
   
   const filtered = currentFilter === 'all' 
     ? visibleProducts 
@@ -51,7 +51,7 @@ export default function Menu({ products = [], currentFilter, setCurrentFilter, i
         
         {/* Сетка с карточками блюд */}
         <div className="lg:col-span-8 xl:col-span-9">
-          {/* Сетка 2 колонки на телефоне, 3 на ПК */}
+          {/* Сетка: 2 колонки на телефоне, 3 на ПК */}
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
             {filtered.length === 0 ? (
               <div className="col-span-full text-center py-12">
