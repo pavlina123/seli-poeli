@@ -44,8 +44,8 @@ export default function Login({ isOpen, onClose, onLogin }) {
           <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-[#fbbf24] to-[#dc2626] flex items-center justify-center shadow-lg shadow-[#fbbf24]/40 mb-4 animate-bounce">
             <i data-lucide="shield-check" className="w-8 h-8 text-black"></i>
           </div>
-          <h2 className="text-2xl font-black font-display text-transparent bg-clip-text bg-gradient-to-r from-[#fbbf24] to-[#dc2626]">Вход для своих</h2>
-          <p className="text-white/50 text-xs mt-2">Введите код доступа (Админ: AD12)</p>
+          <h2 className="text-2xl font-black font-display text-transparent bg-clip-text bg-gradient-to-r from-[#fbbf24] to-[#dc2626]">Вход для персонала</h2>
+          <p className="text-white/50 text-xs mt-2">Введите ваш секретный код доступа</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
