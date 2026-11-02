@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { supabase } from './supabaseClient';
 
 export default function Login({ isOpen, onClose, onLogin }) {
   const [code, setCode] = useState('');
@@ -11,18 +12,18 @@ export default function Login({ isOpen, onClose, onLogin }) {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:3001/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
-      });
-      const data = await res.json();
+      const { data, error: err } = await supabase
+        .from('access_codes')
+        .select('role, name')
+        .eq('code', code.trim().toUpperCase())
+        .single();
 
-      if (!res.ok) throw new Error(data.error || 'Неверный код');
-      
+      if (err || !data) {
+        throw new Error('Неверный код');
+      }
+
+      onLogin({ role: data.role, name: data.name, code: code.trim().toUpperCase() });
       setCode('');
-      setError('');
-      onLogin(data); 
     } catch (err) {
       setError(err.message);
     } finally {
@@ -33,9 +34,8 @@ export default function Login({ isOpen, onClose, onLogin }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-300" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-[#14100a] border border-[#fbbf24]/30 max-w-sm w-full rounded-3xl p-8 relative shadow-[0_0_50px_rgba(251,191,36,0.2)]">
-        
+    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="bg-[#14100a] border border-[#fbbf24]/30 max-w-sm w-full rounded-3xl p-8 relative shadow-2xl">
         <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-red-500 hover:text-white text-white/50 transition-all">
           <i data-lucide="x" className="w-5 h-5"></i>
         </button>
@@ -67,14 +67,7 @@ export default function Login({ isOpen, onClose, onLogin }) {
             disabled={loading}
             className="btn-primary w-full py-4 text-sm"
           >
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                Проверяем...
-              </span>
-            ) : (
-              'ВОЙТИ'
-            )}
+            {loading ? 'Проверяем...' : 'ВОЙТИ'}
           </button>
         </form>
       </div>

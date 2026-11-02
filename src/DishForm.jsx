@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { categories } from './theme';
+import { supabase } from './supabaseClient';
 
 export default function DishForm({ isOpen, onClose, onSave, initialData, code }) {
   const [form, setForm] = useState({
@@ -30,30 +31,28 @@ export default function DishForm({ isOpen, onClose, onSave, initialData, code })
     if (!files.length) return;
 
     setUploading(true);
-    const formData = new FormData();
-    for (let i = 0; i < files.length; i++) {
-      formData.append('files', files[i]);
-    }
+    const newPhotos = [...form.photos];
+    const newVideos = [...form.videos];
 
-    try {
-      const res = await fetch('http://localhost:3001/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
       
-      const isVideo = files[0].type.includes('video');
+      const { error } = await supabase.storage.from('dishes').upload(fileName, file);
       
-      if (isVideo) {
-        setForm(prev => ({ ...prev, videos: [...prev.videos, ...data.urls] }));
-      } else {
-        setForm(prev => ({ ...prev, photos: [...prev.photos, ...data.urls] }));
+      if (!error) {
+        const { data: urlData } = supabase.storage.from('dishes').getPublicUrl(fileName);
+        if (file.type.includes('video')) {
+          newVideos.push(urlData.publicUrl);
+        } else {
+          newPhotos.push(urlData.publicUrl);
+        }
       }
-    } catch (err) {
-      alert('Ошибка загрузки файла');
-    } finally {
-      setUploading(false);
     }
+    
+    setForm(prev => ({ ...prev, photos: newPhotos, videos: newVideos }));
+    setUploading(false);
   };
 
   const removePhoto = (index) => setForm(prev => ({ ...prev, photos: prev.photos.filter((_, i) => i !== index) }));
@@ -61,21 +60,34 @@ export default function DishForm({ isOpen, onClose, onSave, initialData, code })
 
   const submit = async (e) => {
     e.preventDefault();
-    try {
-      const url = initialData ? `http://localhost:3001/api/dishes/${initialData.id}` : 'http://localhost:3001/api/dishes';
-      const method = initialData ? 'PUT' : 'POST';
-      
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, code }),
-      });
-      if (!res.ok) throw new Error('Ошибка сохранения');
-      
+    
+    const payload = {
+      title: form.title,
+      description: form.description,
+      price: Number(form.price),
+      weight: form.weight,
+      category: form.category,
+      photos: form.photos,
+      videos: form.videos,
+      created_by: initialData ? initialData.created_by : (code === 'AD12' ? 'admin' : 'mobilograf'),
+      created_by_code: code,
+      updated_at: new Date().toISOString()
+    };
+
+    let error;
+    if (initialData) {
+      const { error: err } = await supabase.from('dishes').update(payload).eq('id', initialData.id);
+      error = err;
+    } else {
+      const { error: err } = await supabase.from('dishes').insert([payload]);
+      error = err;
+    }
+
+    if (error) {
+      alert('Ошибка: ' + error.message);
+    } else {
       onSave();
       onClose();
-    } catch (err) {
-      alert(err.message);
     }
   };
 

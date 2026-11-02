@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import DishForm from './DishForm';
 import { formatPrice } from './theme';
+import { supabase } from './supabaseClient';
 
 export default function AdminPanel({ user, dishes, onRefresh, onLogout }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -9,32 +10,24 @@ export default function AdminPanel({ user, dishes, onRefresh, onLogout }) {
   const [showLogs, setShowLogs] = useState(false);
 
   const loadLogs = async () => {
-    const res = await fetch(`http://localhost:3001/api/log?code=${user.code}`);
-    const data = await res.json();
-    setLogs(data);
+    const { data } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(50);
+    setLogs(data || []);
     setShowLogs(true);
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Удалить блюдо?')) return;
-    await fetch(`http://localhost:3001/api/dishes/${id}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: user.code })
-    });
+    await supabase.from('dishes').delete().eq('id', id);
+    await supabase.from('activity_log').insert([{ dish_id: id, action: 'delete', actor_role: user.role, actor_code: user.code }]);
     onRefresh();
   };
 
   return (
     <div className="min-h-screen bg-[#0a0805] text-white p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        
-        {/* Шапка панели */}
         <div className="flex flex-wrap items-center justify-between mb-8 gap-4 bg-white/5 p-4 md:p-6 rounded-3xl border border-white/10">
           <div>
-            <h1 className="text-2xl md:text-3xl font-black font-display text-transparent bg-clip-text bg-gradient-to-r from-[#fbbf24] to-[#dc2626]">
-              Панель Админа
-            </h1>
+            <h1 className="text-2xl md:text-3xl font-black font-display text-transparent bg-clip-text bg-gradient-to-r from-[#fbbf24] to-[#dc2626]">Панель Админа</h1>
             <p className="text-white/50 text-sm mt-1">Вы вошли как: <span className="text-[#fbbf24] font-bold">{user.name}</span></p>
           </div>
           <div className="flex flex-wrap gap-2 md:gap-3">
@@ -50,7 +43,6 @@ export default function AdminPanel({ user, dishes, onRefresh, onLogout }) {
           </div>
         </div>
 
-        {/* История действий */}
         {showLogs && (
           <div className="bg-[#14100a] p-4 md:p-6 rounded-3xl mb-8 border border-[#fbbf24]/30 shadow-[0_0_30px_rgba(251,191,36,0.1)] max-h-60 overflow-y-auto">
             <div className="flex justify-between items-center mb-4 sticky top-0 bg-[#14100a]">
@@ -73,7 +65,6 @@ export default function AdminPanel({ user, dishes, onRefresh, onLogout }) {
           </div>
         )}
 
-        {/* Сетка карточек */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {dishes.map(dish => (
             <div key={dish.id} className="bg-white/5 rounded-3xl overflow-hidden border border-white/10 flex flex-col hover:border-[#fbbf24]/50 transition duration-300">

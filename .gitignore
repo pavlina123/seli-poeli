@@ -38,3 +38,5 @@ service/.env
 # Загруженные файлы (на случай если остались локально)
 service/uploads
 *.local
+.vercel
+.env*

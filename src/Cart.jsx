@@ -29,15 +29,14 @@ function ProductModal({ modal, onClose }) {
   }, [modal])
 
   if (!modal) return null
-  const { product: p, source } = modal
+  const { product: p } = modal
   const emoji = categories.find(c => c.id === p.category)?.emoji || '🍽️'
   const categoryName = categories.find(c => c.id === p.category)?.name || 'Блюдо'
   
-  // Берем данные из базы (title и photos)
   const hasImage = p.photos && p.photos.length > 0
   const imageUrl = hasImage ? p.photos[0] : null
-  const rating = 4.9 // Заглушка, так как в базе рейтинга нет
-  const sum = p.price * qty
+  const rating = 4.9 
+  const sum = Number(p.price) * qty
 
   const order = () => {
     let text = `Здравствуйте! Хочу заказать в Seli_poeli_live:\n\n`
@@ -243,7 +242,7 @@ function CartPanel({ open, onClose, cart, total, count, onChangeQty, onClear }) 
   )
 }
 
-// ===== FOOTER (Оставил твой красивый) =====
+// ===== FOOTER =====
 function Footer() {
   return (
     <footer id="contacts" className="border-t border-[#fbbf24]/20 bg-[#14100a]/60 py-10 md:py-16 mt-10">

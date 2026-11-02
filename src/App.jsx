@@ -5,73 +5,72 @@ import Cart from './Cart';
 import Login from './Login';
 import AdminPanel from './AdminPanel';
 import MobilografPanel from './MobilografPanel';
+import { supabase } from './supabaseClient';
 
 // ============================================================
-// СТИЛИ, КНОПКИ И АНИМАЦИИ
+// ВСЕ СТИЛИ И АНИМАЦИИ (ВОЗВРАЩАЕМ КРАСОТУ)
 // ============================================================
 function GlobalStyles() {
   return (
     <style>{`
+      /* Кастомный скроллбар */
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: #0a0805; }
+      ::-webkit-scrollbar-thumb { background: linear-gradient(#fbbf24, #dc2626); border-radius: 8px; }
+
+      /* Стекло */
       .glass { background: rgba(20,16,10,.7); backdrop-filter: blur(20px); border: 1px solid rgba(251,191,36,.15); }
       .glass-strong { background: rgba(20,16,10,.95); backdrop-filter: blur(30px); border: 1px solid rgba(251,191,36,.25); }
+
+      /* Градиентный текст */
       .text-gradient-sp { background: linear-gradient(135deg,#fbbf24 0%,#fb923c 50%,#dc2626 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
       
       /* Супер-кнопка */
       .btn-primary {
         background: linear-gradient(135deg, #fbbf24 0%, #fb923c 50%, #dc2626 100%);
-        color: #000 !important; /* Черный текст на ярком фоне */
+        color: #000 !important;
         font-weight: 900;
         border-radius: 1rem;
-        transition: all 0.3s ease;
+        padding: 12px 24px;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         box-shadow: 0 10px 30px rgba(251, 191, 36, 0.4);
         border: none;
         cursor: pointer;
+        text-align: center;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 8px;
         position: relative;
         overflow: hidden;
-        padding: 12px 24px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
       }
       
-      /* Блик при наведении */
+      /* Блик на кнопке */
       .btn-primary::after {
         content: '';
         position: absolute;
         top: 0; left: -100%; width: 50%; height: 100%;
-        background: linear-gradient(to right, transparent, rgba(255,255,255,0.6), transparent);
+        background: linear-gradient(to right, transparent, rgba(255,255,255,0.5), transparent);
         transform: skewX(-20deg);
         transition: left 0.5s ease;
       }
       .btn-primary:hover::after { left: 150%; }
       .btn-primary:hover {
         transform: translateY(-3px) scale(1.02);
-        box-shadow: 0 15px 40px rgba(251, 191, 36, 0.7);
+        box-shadow: 0 15px 40px rgba(251, 191, 36, 0.6);
       }
       .btn-primary:active {
         transform: translateY(1px) scale(0.98);
       }
 
-      /* Анимация появления */
+      /* Анимация появления карточек */
       @keyframes slideUp {
         from { opacity: 0; transform: translateY(30px); }
         to { opacity: 1; transform: translateY(0); }
       }
+      
       .animate-slide-up {
-        animation: slideUp 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-      }
-
-      /* Пульсация для плавающей кнопки */
-      @keyframes pulse-ring {
-        0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7); }
-        70% { box-shadow: 0 0 0 15px rgba(251, 191, 36, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
-      }
-      .pulse-btn {
-        animation: pulse-ring 2s infinite;
+        animation: slideUp 0.5s ease-out forwards;
       }
     `}</style>
   )
@@ -88,6 +87,7 @@ export default function App() {
   const [showCart, setShowCart] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Проверяем сохраненную сессию при загрузке
   useEffect(() => {
     const savedCode = localStorage.getItem('sp_code');
     const savedRole = localStorage.getItem('sp_role');
@@ -97,6 +97,7 @@ export default function App() {
     }
   }, []);
 
+  // Перерисовка иконок Lucide
   useEffect(() => {
     const t = setTimeout(() => {
       if (window.lucide) window.lucide.createIcons()
@@ -104,18 +105,20 @@ export default function App() {
     return () => clearTimeout(t)
   }, [cart, currentFilter, modal, showCart, showLogin, dishes]);
 
-  const loadDishes = useCallback(() => {
+  // ЗАГРУЗКА БЛЮД ИЗ SUPABASE
+  const loadDishes = useCallback(async () => {
     setLoading(true);
-    fetch('http://localhost:3001/api/dishes')
-      .then(res => res.json())
-      .then(data => {
-        setDishes(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Ошибка загрузки блюд:", err);
-        setLoading(false);
-      });
+    const { data, error } = await supabase
+      .from('dishes')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Ошибка загрузки:", error);
+    } else {
+      setDishes(data || []);
+    }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -138,7 +141,9 @@ export default function App() {
     window.location.reload(); 
   };
 
+  // ====== ЛОГИКА КОРЗИНЫ ======
   const isInCart = (id) => cart.some(i => i.id === id);
+  
   const onAdd = (id) => {
     const p = dishes.find(d => d.id === id);
     if (!p) return;
@@ -148,9 +153,11 @@ export default function App() {
       return [...prev, { ...p, qty: 1 }];
     });
   };
+  
   const changeQty = (id, delta) => {
     setCart(prev => prev.map(i => i.id === id ? { ...i, qty: i.qty + delta } : i).filter(i => i.qty > 0));
   };
+  
   const clearCart = () => {
     if (window.confirm('Очистить корзину?')) setCart([]);
   };
@@ -158,6 +165,7 @@ export default function App() {
   const cartTotal = cart.reduce((s, i) => s + Number(i.price) * i.qty, 0);
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
 
+  // ====== РОУТИНГ ======
   if (user?.role === 'admin') {
     return <AdminPanel user={user} dishes={dishes} onRefresh={loadDishes} onLogout={handleLogout} />;
   }
@@ -166,6 +174,7 @@ export default function App() {
     return <MobilografPanel user={user} dishes={dishes} onRefresh={loadDishes} onLogout={handleLogout} />;
   }
 
+  // ====== КЛИЕНТСКАЯ ЧАСТЬ ======
   return (
     <div className="bg-[#0a0805] min-h-screen text-[#fffbf0] overflow-hidden relative">
       <GlobalStyles />
@@ -213,11 +222,11 @@ export default function App() {
         onLogin={handleLogin} 
       />
 
-      {/* Плавающая кнопка входа с пульсацией */}
+      {/* Плавающая кнопка входа для персонала */}
       {!showLogin && (
         <button 
           onClick={() => setShowLogin(true)}
-          className="fixed bottom-6 left-6 z-40 w-14 h-14 rounded-full flex items-center justify-center bg-gradient-to-tr from-[#fbbf24] to-[#dc2626] hover:scale-110 active:scale-95 transition-all duration-300 pulse-btn"
+          className="fixed bottom-6 left-6 z-40 w-14 h-14 rounded-full flex items-center justify-center bg-gradient-to-tr from-[#fbbf24] to-[#dc2626] shadow-[0_0_30px_rgba(251,191,36,0.5)] hover:scale-110 active:scale-95 transition-all duration-300"
           title="Вход для персонала"
         >
           <i data-lucide="lock" className="w-6 h-6 text-black"></i>
